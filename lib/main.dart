@@ -47,8 +47,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  var _selectedDay = DateTime.now();
+  DateTime? _selectedDay; // 초기값을 null로 설정
   DateTime _focusedDay = DateTime.now();
+  int _selectedIndex = 0; // BottomNavigationBar의 선택된 인덱스
 
   Future<void> _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
     setState(() {
@@ -80,6 +81,23 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // TODO: 각 버튼에 맞는 페이지로 이동하도록 설정
+    if (index == 0) {
+      Navigator.pushNamed(context, '/home'); // 캘린더 페이지로 이동
+    } else if (index == 1) {
+      // 오늘일기 페이지로 이동
+      Navigator.pushNamed(context, '/today_diary');
+    } else if (index == 2) {
+      // MY 페이지로 이동
+      Navigator.pushNamed(context, '/my_page');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,42 +109,167 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: [
-          TableCalendar(
-            locale: 'ko_KR', // 달력 로케일을 한국어로 설정
-            firstDay: DateTime.utc(2020, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: _onDaySelected,
-            calendarFormat: CalendarFormat.month,
-            rowHeight: 85.0, // 각 행의 높이를 조정합니다
-            headerStyle: HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              leftChevronIcon: const Icon(Icons.chevron_left),
-              rightChevronIcon: const Icon(Icons.chevron_right),
-            ),
-            calendarStyle: CalendarStyle(
-              cellMargin: const EdgeInsets.all(4.0), // 셀 사이의 간격을 조절합니다
-              cellPadding: const EdgeInsets.all(8.0), // 셀 내부의 간격을 조절합니다
-              todayDecoration: BoxDecoration(
-                color: Colors.blueAccent,
-                shape: BoxShape.circle,
+          Expanded(
+            child: TableCalendar(
+              locale: 'ko_KR', // 달력 로케일을 한국어로 설정
+              firstDay: DateTime.utc(2020, 1, 1),
+              lastDay: DateTime.utc(2030, 12, 31),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day), // 선택된 날짜가 없을 때 false를 반환
+              onDaySelected: _onDaySelected,
+              calendarFormat: CalendarFormat.month,
+              rowHeight: 85.0, // 각 행의 높이를 조정합니다
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: (context, date, focusedDay) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.rectangle,
+                      border: Border.all(color: Colors.transparent),
+                    ),
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: CircleAvatar(
+                              backgroundImage: AssetImage('assets/sample_image.png'), // 이미지 경로
+                              radius: 20.0, // 이미지의 반지름
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4.0, // 날짜를 셀의 상단에 배치
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                selectedBuilder: (context, date, focusedDay) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.rectangle,
+                      color: Colors.deepPurple,
+                      border: Border.all(color: Colors.transparent),
+                    ),
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: CircleAvatar(
+                              backgroundImage: AssetImage('assets/sample_image.png'), // 이미지 경로
+                              radius: 20.0, // 이미지의 반지름
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4.0, // 날짜를 셀의 상단에 배치
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                todayBuilder: (context, date, focusedDay) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.rectangle,
+                      color: Colors.blueAccent,
+                      border: Border.all(color: Colors.transparent),
+                    ),
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: CircleAvatar(
+                              backgroundImage: AssetImage('assets/sample_image.png'), // 이미지 경로
+                              radius: 20.0, // 이미지의 반지름
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4.0, // 날짜를 셀의 상단에 배치
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-              selectedDecoration: BoxDecoration(
-                color: Colors.deepPurple,
-                shape: BoxShape.circle,
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                leftChevronIcon: const Icon(Icons.chevron_left),
+                rightChevronIcon: const Icon(Icons.chevron_right),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Selected day: ${_selectedDay.toLocal()}',
-              style: Theme.of(context).textTheme.headline6,
+              calendarStyle: CalendarStyle(
+                cellMargin: const EdgeInsets.all(4.0), // 셀 사이의 간격을 조절합니다
+                cellPadding: const EdgeInsets.all(8.0), // 셀 내부의 간격을 조절합니다
+                todayDecoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: Colors.lightBlueAccent, // 오늘 날짜 강조
+                  shape: BoxShape.circle,
+                ),
+              ),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: '캘린더',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.today),
+            label: '오늘일기',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'MY',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
     );
   }
