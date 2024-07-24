@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart'; // 로케일 데이터를 불러오기 위한 패키지
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/diary_screen.dart';
 import 'screens/diary_final.dart';
-import 'screens/login_screen.dart'; // 로그인 화면 import
-import 'screens/signup_screen.dart'; // 회원 가입 화면 import
+import 'screens/login_screen.dart';
+import 'screens/signup_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting(); // 로케일 데이터 초기화
   runApp(const MyApp());
 }
 
@@ -22,13 +25,14 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
+      debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
         '/home': (context) => const MyHomePage(title: '달력'),
-        // 다른 화면들 추가
       },
+      locale: const Locale('ko', 'KR'), // 로케일을 한국어로 설정
     );
   }
 }
@@ -80,19 +84,22 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        backgroundColor: Colors.blue, // AppBar 배경 색상 변경
+        elevation: 0, // 그림자 제거
+        title: null, // 제목을 표시하지 않음
+        toolbarHeight: 48.0, // AppBar 높이 조정
       ),
       body: Column(
         children: [
           TableCalendar(
+            locale: 'ko_KR', // 달력 로케일을 한국어로 설정
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: _onDaySelected,
             calendarFormat: CalendarFormat.month,
-            rowHeight: 70.0, // 각 행의 높이를 조정합니다
+            rowHeight: 85.0, // 각 행의 높이를 조정합니다
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
