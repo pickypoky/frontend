@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'diary_final.dart'; // 새로운 페이지 import
+import 'diary_final.dart'; // DiaryDetailScreen import
 
 class DiaryScreen extends StatefulWidget {
   final DateTime selectedDay;
@@ -15,7 +15,8 @@ class DiaryScreen extends StatefulWidget {
 class _DiaryScreenState extends State<DiaryScreen> {
   final TextEditingController _diaryController = TextEditingController();
   String _diaryContent = '';
-  String _selectedEmoji = '';
+
+  DateTime get _currentDay => widget.selectedDay;
 
   @override
   void initState() {
@@ -25,121 +26,129 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
   Future<void> _loadDiary() async {
     final prefs = await SharedPreferences.getInstance();
-    final diaryKey = DateFormat('yyyy-MM-dd').format(widget.selectedDay);
+    final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
     setState(() {
       _diaryContent = prefs.getString(diaryKey) ?? '';
       _diaryController.text = _diaryContent;
-      _selectedEmoji = prefs.getString('${diaryKey}_emoji') ?? '';
     });
   }
 
   Future<void> _saveDiary() async {
     final prefs = await SharedPreferences.getInstance();
-    final diaryKey = DateFormat('yyyy-MM-dd').format(widget.selectedDay);
+    final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
+
+    if (_diaryController.text.length < 15) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('일기 내용은 최소 15자 이상 작성해야 합니다.')),
+      );
+      return;
+    }
 
     if (_diaryController.text.isNotEmpty) {
       await prefs.setString(diaryKey, _diaryController.text);
     }
 
-    await prefs.setString('${diaryKey}_emoji', _selectedEmoji);
-
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Diary saved')),
+      const SnackBar(content: Text('일기가 저장되었습니다.')),
     );
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => DiaryDetailScreen(
-          selectedDay: widget.selectedDay,
+          selectedDay: _currentDay,
           diaryContent: _diaryController.text,
-          emoji: _selectedEmoji,
+          // 이모지 파라미터 제거
         ),
       ),
     );
   }
 
-  Future<void> _selectEmoji() async {
-    String? emoji = await showDialog<String>(
-      context: context,
-      builder: (context) => EmojiPickerDialog(selectedEmoji: _selectedEmoji),
+  void _changeDate(int days) {
+    final newDate = _currentDay.add(Duration(days: days));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DiaryScreen(selectedDay: newDate),
+      ),
     );
-
-    if (emoji != null) {
-      setState(() {
-        _selectedEmoji = emoji;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Diary for ${DateFormat('yyyy-MM-dd').format(widget.selectedDay)}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveDiary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop(); // 뒤로 가기
+          },
+        ),
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(70),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: () => _changeDate(-1),
+                  ),
+                  Text(
+                    DateFormat('yyyy-MM-dd').format(_currentDay),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.0,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: () => _changeDate(1),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
+            const Center(
+              child: Text(
+                '당신의 이야기를 기록해보세요',
+                style: TextStyle(
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            Container(
+              constraints: BoxConstraints(
+                maxHeight: 350.0, // 텍스트 상자의 최대 높이
+              ),
               child: TextField(
                 controller: _diaryController,
                 maxLines: null,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: 'Write your diary here...',
+                  hintText: '무엇이든 자유롭게 적어보세요',
                 ),
+                expands: false,
+                minLines: 6, // 최소 줄 수
               ),
             ),
-            const SizedBox(height: 16.0),
-            Text('Selected Emoji: $_selectedEmoji'),
-            ElevatedButton(
-              onPressed: _selectEmoji,
-              child: const Text('Select Emoji'),
+            const SizedBox(height: 10.0),
+            Center(
+              child: ElevatedButton(
+                onPressed: _saveDiary,
+                child: const Text('작성 완료'),
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class EmojiPickerDialog extends StatelessWidget {
-  final String selectedEmoji;
-
-  const EmojiPickerDialog({super.key, required this.selectedEmoji});
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Select Emoji'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: GridView.count(
-          crossAxisCount: 5,
-          children: [
-            '😊', '😂', '😢', '😡', '😍',
-            '🥰', '😎', '🤔', '🤩', '😴',
-            '😱', '😷', '🤯', '😈', '👿',
-          ].map((emoji) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.of(context).pop(emoji);
-              },
-              child: Center(
-                child: Text(
-                  emoji,
-                  style: const TextStyle(fontSize: 36.0),
-                ),
-              ),
-            );
-          }).toList(),
         ),
       ),
     );
