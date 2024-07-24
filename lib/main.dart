@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'screens/diary_screen.dart'; // 일기 화면 import
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'screens/diary_screen.dart';
+import 'screens/diary_final.dart';
+import 'screens/login_screen.dart'; // 로그인 화면 import
+import 'screens/signup_screen.dart'; // 회원 가입 화면 import
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +22,13 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: '월간 캘린더'),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/signup': (context) => const SignupScreen(),
+        '/home': (context) => const MyHomePage(title: '달력'),
+        // 다른 화면들 추가
+      },
     );
   }
 }
@@ -35,17 +46,34 @@ class _MyHomePageState extends State<MyHomePage> {
   var _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
 
-  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+  Future<void> _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
     setState(() {
       _selectedDay = selectedDay;
       _focusedDay = focusedDay;
     });
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => DiaryScreen(selectedDay: _selectedDay),
-      ),
-    );
+    final prefs = await SharedPreferences.getInstance();
+    final diaryKey = DateFormat('yyyy-MM-dd').format(selectedDay);
+    final diaryContent = prefs.getString(diaryKey);
+    final selectedEmoji = prefs.getString('${diaryKey}_emoji') ?? '';
+
+    if (diaryContent != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => DiaryDetailScreen(
+            selectedDay: selectedDay,
+            diaryContent: diaryContent,
+            emoji: selectedEmoji,
+          ),
+        ),
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => DiaryScreen(selectedDay: selectedDay),
+        ),
+      );
+    }
   }
 
   @override
@@ -64,11 +92,24 @@ class _MyHomePageState extends State<MyHomePage> {
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: _onDaySelected,
             calendarFormat: CalendarFormat.month,
+            rowHeight: 70.0, // 각 행의 높이를 조정합니다
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
               leftChevronIcon: const Icon(Icons.chevron_left),
               rightChevronIcon: const Icon(Icons.chevron_right),
+            ),
+            calendarStyle: CalendarStyle(
+              cellMargin: const EdgeInsets.all(4.0), // 셀 사이의 간격을 조절합니다
+              cellPadding: const EdgeInsets.all(8.0), // 셀 내부의 간격을 조절합니다
+              todayDecoration: BoxDecoration(
+                color: Colors.blueAccent,
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: BoxDecoration(
+                color: Colors.deepPurple,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           Padding(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'diary_final.dart'; // 새로운 페이지 import
 
 class DiaryScreen extends StatefulWidget {
   final DateTime selectedDay;
@@ -28,6 +29,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
     setState(() {
       _diaryContent = prefs.getString(diaryKey) ?? '';
       _diaryController.text = _diaryContent;
+      _selectedEmoji = prefs.getString('${diaryKey}_emoji') ?? '';
     });
   }
 
@@ -44,11 +46,20 @@ class _DiaryScreenState extends State<DiaryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Diary saved')),
     );
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => DiaryDetailScreen(
+          selectedDay: widget.selectedDay,
+          diaryContent: _diaryController.text,
+          emoji: _selectedEmoji,
+        ),
+      ),
+    );
   }
 
   Future<void> _selectEmoji() async {
-    // Implement a dialog or a widget to select an emoji
-    String? emoji = await showDialog(
+    String? emoji = await showDialog<String>(
       context: context,
       builder: (context) => EmojiPickerDialog(selectedEmoji: _selectedEmoji),
     );
@@ -108,23 +119,28 @@ class EmojiPickerDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Select Emoji'),
-      content: GridView.count(
-        crossAxisCount: 5,
-        children: [
-          '😊', '😂', '😢', '😡', '😍', // Add more emojis as needed
-        ].map((emoji) {
-          return GestureDetector(
-            onTap: () {
-              Navigator.of(context).pop(emoji);
-            },
-            child: Center(
-              child: Text(
-                emoji,
-                style: const TextStyle(fontSize: 24.0),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: GridView.count(
+          crossAxisCount: 5,
+          children: [
+            '😊', '😂', '😢', '😡', '😍',
+            '🥰', '😎', '🤔', '🤩', '😴',
+            '😱', '😷', '🤯', '😈', '👿',
+          ].map((emoji) {
+            return GestureDetector(
+              onTap: () {
+                Navigator.of(context).pop(emoji);
+              },
+              child: Center(
+                child: Text(
+                  emoji,
+                  style: const TextStyle(fontSize: 36.0),
+                ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
