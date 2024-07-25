@@ -37,7 +37,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     final prefs = await SharedPreferences.getInstance();
     final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
 
-    // 현재 작성된 일기 개수 가져오기
     final List<String> diaries = prefs.getStringList(diaryKey) ?? [];
     if (diaries.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,15 +56,33 @@ class _DiaryScreenState extends State<DiaryScreen> {
       diaries.add(content);
       await prefs.setStringList(diaryKey, diaries);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('일기가 저장되었습니다.')),
-      );
+      setState(() {
+        _existingDiaries = diaries;
+      });
+
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop(); // Return to the previous screen
+      }
+    }
+  }
+
+  Future<void> _updateDiary(int index, String updatedContent) async {
+    final prefs = await SharedPreferences.getInstance();
+    final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
+
+    final List<String> diaries = prefs.getStringList(diaryKey) ?? [];
+
+    if (updatedContent.isNotEmpty) {
+      diaries[index] = updatedContent;
+      await prefs.setStringList(diaryKey, diaries);
 
       setState(() {
         _existingDiaries = diaries;
       });
 
-      Navigator.of(context).pop(); // Return to the previous screen
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop(); // Return to the previous screen
+      }
     }
   }
 
@@ -73,15 +90,20 @@ class _DiaryScreenState extends State<DiaryScreen> {
     final prefs = await SharedPreferences.getInstance();
     final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
 
-    setState(() {
-      _existingDiaries.removeAt(index);
-    });
+    final List<String> diaries = prefs.getStringList(diaryKey) ?? [];
 
-    await prefs.setStringList(diaryKey, _existingDiaries);
+    if (index >= 0 && index < diaries.length) {
+      diaries.removeAt(index);
+      await prefs.setStringList(diaryKey, diaries);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('일기가 삭제되었습니다.')),
-    );
+      setState(() {
+        _existingDiaries = diaries;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('일기가 삭제되었습니다.')),
+      );
+    }
   }
 
   void _changeDate(int days) {
@@ -108,11 +130,31 @@ class _DiaryScreenState extends State<DiaryScreen> {
     });
   }
 
-  void _viewDiaryDetail(String content) {
+  void _viewDiaryDetail(String content, int index) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DiaryDetailScreen(content: content),
+        builder: (context) => DiaryDetailScreen(
+          content: content,
+          onEdit: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DiaryCreationScreen(
+                  initialContent: content,
+                  isEditMode: true,
+                  onSave: (updatedContent) async {
+                    await _updateDiary(index, updatedContent);
+                  },
+                ),
+              ),
+            );
+          },
+          onDelete: () async {
+            await _deleteDiary(index);
+            Navigator.of(context).pop(); // Return to the previous screen
+          },
+        ),
       ),
     );
   }
@@ -128,7 +170,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           },
         ),
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(70),
+          preferredSize: const Size.fromHeight(70),
           child: Column(
             children: [
               Row(
@@ -181,7 +223,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         child: const Icon(Icons.delete, color: Colors.white),
                       ),
                       child: GestureDetector(
-                        onTap: () => _viewDiaryDetail(diary),
+                        onTap: () => _viewDiaryDetail(diary, index),
                         child: Container(
                           width: double.infinity, // 가로 길이를 부모 위젯에 맞게 설정
                           margin: const EdgeInsets.only(bottom: 8.0),
@@ -262,26 +304,52 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
 class DiaryCreationScreen extends StatefulWidget {
   final Future<void> Function(String content) onSave;
+  final String? initialContent;
+  final bool isEditMode;
 
-  const DiaryCreationScreen({super.key, required this.onSave});
+  const DiaryCreationScreen({
+    super.key,
+    required this.onSave,
+    this.initialContent,
+    this.isEditMode = false,
+  });
 
   @override
   _DiaryCreationScreenState createState() => _DiaryCreationScreenState();
 }
 
 class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
-  final TextEditingController _diaryController = TextEditingController();
+  late TextEditingController _diaryController;
+
+  @override
+  void initState() {
+    super.initState();
+    _diaryController = TextEditingController(text: widget.initialContent ?? '');
+  }
+
+  @override
+  void dispose() {
+    _diaryController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('새 일기 작성'),
+        title: Text(widget.isEditMode ? '일기 수정' : '새 일기 작성'),
         actions: [
           IconButton(
             icon: const Icon(Icons.check),
             onPressed: () {
-              widget.onSave(_diaryController.text);
+              widget.onSave(_diaryController.text).then((_) {
+                Navigator.of(context).pop(); // Save and return to the previous screen
+              }).catchError((error) {
+                // Handle the error
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('오류 발생: $error')),
+                );
+              });
             },
           ),
         ],
@@ -318,7 +386,14 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  widget.onSave(_diaryController.text);
+                  widget.onSave(_diaryController.text).then((_) {
+                    Navigator.of(context).pop(); // Save and return to the previous screen
+                  }).catchError((error) {
+                    // Handle the error
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('오류 발생: $error')),
+                    );
+                  });
                 },
                 child: const Text('작성 완료'),
               ),
@@ -332,14 +407,39 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
 
 class DiaryDetailScreen extends StatelessWidget {
   final String content;
+  final Future<void> Function() onEdit;
+  final Future<void> Function() onDelete;
 
-  const DiaryDetailScreen({super.key, required this.content});
+  const DiaryDetailScreen({
+    super.key,
+    required this.content,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('일기 상세보기'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () async {
+              await onEdit();
+              // Return to the previous screen
+              Navigator.of(context).pop();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () async {
+              await onDelete();
+              // Return to the previous screen
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
