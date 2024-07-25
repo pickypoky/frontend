@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart'; // 로케일 데이터를 불러오기 위한 패키지
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/diary_screen.dart';
-import 'screens/diary_final.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 
