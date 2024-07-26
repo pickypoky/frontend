@@ -174,7 +174,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start, // 왼쪽 정렬
                 children: [
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
