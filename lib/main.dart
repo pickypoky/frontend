@@ -65,7 +65,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => DiaryScreen(selectedDay: selectedDay),
+          builder: (context) => DiaryScreen(
+            selectedDay: selectedDay,
+            onClose: () {
+              setState(() {
+                _selectedIndex = 0; // 캘린더 탭으로 이동
+              });
+            },
+          ),
         ),
       );
     }
@@ -101,7 +108,14 @@ class _MyHomePageState extends State<MyHomePage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => DiaryScreen(selectedDay: now),
+          builder: (context) => DiaryScreen(
+            selectedDay: now,
+            onClose: () {
+              setState(() {
+                _selectedIndex = 0; // 캘린더 탭으로 이동
+              });
+            },
+          ),
         ),
       );
     } else if (index == 2) {
