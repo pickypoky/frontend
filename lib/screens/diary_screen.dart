@@ -63,6 +63,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop(); // Return to the previous screen
+        widget.onClose(); // Call onClose to switch to the calendar tab
       }
     }
   }
@@ -83,6 +84,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop(); // Return to the previous screen
+        widget.onClose(); // Call onClose to switch to the calendar tab
       }
     }
   }
@@ -188,6 +190,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     onPressed: () {
                       Navigator.of(context).pop(); // 다이얼로그 닫기
                       Navigator.of(context).pop(); // 작성 화면 닫기
+                      widget.onClose(); // Call onClose to switch to the calendar tab
                     },
                     child: const Text('취소할게요'),
                   ),
@@ -213,6 +216,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
               onPressed: () {
                 if (_diaryController.text.isEmpty) {
                   Navigator.of(context).pop(); // 작성 화면 닫기
+                  widget.onClose(); // Call onClose to switch to the calendar tab
                 } else {
                   _showCancelConfirmationDialog(); // 확인 다이얼로그 표시
                 }

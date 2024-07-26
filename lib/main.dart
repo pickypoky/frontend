@@ -74,7 +74,12 @@ class _MyHomePageState extends State<MyHomePage> {
             },
           ),
         ),
-      );
+      ).then((_) {
+        // 네비게이션이 pop된 후 실행될 코드
+        setState(() {
+          _selectedIndex = 0; // 캘린더 탭으로 이동
+        });
+      });
     }
   }
 
@@ -117,7 +122,12 @@ class _MyHomePageState extends State<MyHomePage> {
             },
           ),
         ),
-      );
+      ).then((_) {
+        // 네비게이션이 pop된 후 실행될 코드
+        setState(() {
+          _selectedIndex = 0; // 캘린더 탭으로 이동
+        });
+      });
     } else if (index == 2) {
       Navigator.pushNamed(context, '/my_page'); // MY 페이지로 이동
     }
