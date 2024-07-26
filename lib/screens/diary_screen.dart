@@ -280,7 +280,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   itemCount: _existingDiaries.length,
                   itemBuilder: (context, index) {
                     final diary = _existingDiaries[index];
-                    final preview = diary['content']!.length > 20 ? '${diary['content']!.substring(0, 20)}...' : diary['content']!;
+                    final preview = diary['content']!.length > 20
+                        ? '${diary['content']!.substring(0, 20)}...'
+                        : diary['content']!;
                     return Dismissible(
                       key: Key('${diary['content']}$index'),
                       direction: DismissDirection.endToStart,
@@ -330,12 +332,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 ),
               ),
               const SizedBox(height: 10.0),
-              Center(
-                child: ElevatedButton(
-                  onPressed: _navigateToDiaryCreation,
-                  child: const Text('일기 작성'),
+              if (_existingDiaries.length < 3) // 일기 개수가 3개 미만일 때만 버튼 보이기
+                Center(
+                  child: ElevatedButton(
+                    onPressed: _navigateToDiaryCreation,
+                    child: const Text('일기 작성'),
+                  ),
                 ),
-              ),
             ] else ...[
               const SizedBox(height: 20.0), // 날짜와 '당신의 이야기를 기록해보세요' 사이 간격 추가
               const Center(
@@ -379,49 +382,114 @@ class _DiaryScreenState extends State<DiaryScreen> {
   }
 }
 
-class DiaryCreationScreen extends StatefulWidget {
-  final Future<void> Function(String content) onSave;
+class DiaryCreationScreen extends StatelessWidget {
   final String? initialContent;
   final bool isEditMode;
+  final void Function(String) onSave;
 
   const DiaryCreationScreen({
     super.key,
-    required this.onSave,
     this.initialContent,
     this.isEditMode = false,
+    required this.onSave,
   });
 
   @override
-  _DiaryCreationScreenState createState() => _DiaryCreationScreenState();
+  Widget build(BuildContext context) {
+    final TextEditingController controller =
+    TextEditingController(text: initialContent);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEditMode ? '일기 수정' : '일기 작성'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check),
+            onPressed: () {
+              onSave(controller.text);
+              Navigator.of(context).pop(); // Go back after saving
+            },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: controller,
+          maxLines: null,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: '일기 내용을 입력하세요',
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
-  late TextEditingController _diaryController;
+class DiaryDetailScreen extends StatelessWidget {
+  final DateTime date;
+  final String content;
+  final String time;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const DiaryDetailScreen({
+    super.key,
+    required this.date,
+    required this.content,
+    required this.time,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
-  void initState() {
-    super.initState();
-    _diaryController = TextEditingController(text: widget.initialContent ?? '');
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('일기 상세'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              _showDeleteConfirmationDialog(context);
+            },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              content,
+              style: const TextStyle(fontSize: 16.0),
+            ),
+            const SizedBox(height: 16.0),
+            Text(
+              '작성 시간: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(time))}',
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _diaryController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _showCancelConfirmationDialog() async {
+  Future<void> _showDeleteConfirmationDialog(BuildContext context) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // 사용자 의도치 않은 닫기 방지
       builder: (BuildContext context) {
         return AlertDialog(
-          content: const Padding(
-            padding: EdgeInsets.only(top: 20.0), // 상단 여백 추가
-            child: Text(
-              '취소하면 작성한 내용이 사라져요.\n정말 취소할까요?',
-              textAlign: TextAlign.center, // 텍스트 중앙 정렬
-            ),
+          content: const Text(
+            '정말로 이 일기를 삭제하시겠습니까?',
+            textAlign: TextAlign.center,
           ),
           actions: [
             Center(
@@ -432,14 +500,14 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
                     onPressed: () {
                       Navigator.of(context).pop(); // 다이얼로그 닫기
                     },
-                    child: const Text('계속 쓸게요'),
+                    child: const Text('취소'),
                   ),
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop(); // 다이얼로그 닫기
-                      Navigator.of(context).pop(); // 작성 화면 닫기
+                      onDelete(); // 일기 삭제
                     },
-                    child: const Text('취소할게요'),
+                    child: const Text('삭제'),
                   ),
                 ],
               ),
@@ -447,163 +515,6 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
           ],
         );
       },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false, // 자동으로 추가되는 뒤로가기 버튼 제거
-        title: Text(widget.isEditMode ? '일기 수정' : '새 일기 작성'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0), // 오른쪽 여백을 추가하여 버튼을 왼쪽으로 이동
-            child: IconButton(
-              icon: const Icon(Icons.clear), // X 아이콘
-              onPressed: () {
-                if (_diaryController.text.isEmpty) {
-                  Navigator.of(context).pop(); // 작성 화면 닫기
-                } else {
-                  _showCancelConfirmationDialog(); // 확인 다이얼로그 표시
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '당신의 이야기를 기록해보세요',
-              style: TextStyle(
-                fontSize: 20.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 30.0), // 날짜와 '당신의 이야기를 기록해보세요' 사이 간격 추가
-            Expanded(
-              child: TextField(
-                controller: _diaryController,
-                maxLines: null,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: '무엇이든 자유롭게 적어보세요',
-                ),
-                expands: false,
-                minLines: 8, // 최소 줄 수
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: () {
-            widget.onSave(_diaryController.text).then((_) {
-              Navigator.of(context).pop(); // Save and return to the previous screen
-            }).catchError((error) {
-              // Handle the error
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('오류 발생: $error')),
-              );
-            });
-          },
-          child: const Text('작성 완료'),
-        ),
-      ),
-    );
-  }
-}
-
-class DiaryDetailScreen extends StatelessWidget {
-  final String content;
-  final String time;
-  final DateTime date;
-  final Future<void> Function() onEdit;
-  final Future<void> Function() onDelete;
-
-  const DiaryDetailScreen({
-    super.key,
-    required this.content,
-    required this.time,
-    required this.date,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-            ),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50.0),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  DateFormat('yyyy-MM-dd').format(date),
-                  style: const TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: onEdit,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: onDelete,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                content,
-                style: const TextStyle(fontSize: 16.0),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                '작성 시간: $time',
-                style: const TextStyle(color: Colors.grey, fontSize: 12.0),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
