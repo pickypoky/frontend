@@ -163,37 +163,42 @@ class _DiaryScreenState extends State<DiaryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop(); // 뒤로 가기
-          },
-        ),
+        automaticallyImplyLeading: false, // 자동으로 추가되는 뒤로가기 버튼 제거
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0), // 오른쪽 여백을 추가하여 버튼을 왼쪽으로 이동
+            child: IconButton(
+              icon: const Icon(Icons.clear), // X 아이콘
+              onPressed: () {
+                Navigator.of(context).pop(); // 뒤로 가기
+              },
+            ),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(70),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start, // 왼쪽 정렬
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: () => _changeDate(-1),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 6.0), // 왼쪽에 6만큼 여백 추가
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start, // 왼쪽 정렬
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: () => _changeDate(-1),
+                ),
+                Text(
+                  DateFormat('yyyy-MM-dd').format(_currentDay),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.0,
                   ),
-                  Text(
-                    DateFormat('yyyy-MM-dd').format(_currentDay),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.0,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: () => _changeDate(1),
-                  ),
-                ],
-              ),
-            ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: () => _changeDate(1),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -337,8 +342,18 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // 자동으로 추가되는 뒤로가기 버튼 제거
         title: Text(widget.isEditMode ? '일기 수정' : '새 일기 작성'),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0), // 오른쪽 여백을 추가하여 버튼을 왼쪽으로 이동
+            child: IconButton(
+              icon: const Icon(Icons.clear), // X 아이콘
+              onPressed: () {
+                Navigator.of(context).pop(); // Return to the previous screen
+              },
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.check),
             onPressed: () {
@@ -421,15 +436,19 @@ class DiaryDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // 자동으로 추가되는 뒤로가기 버튼 제거
         title: const Text('일기 상세보기'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () async {
-              await onEdit();
-              // Return to the previous screen
-              Navigator.of(context).pop();
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0), // 오른쪽 여백을 추가하여 버튼을 왼쪽으로 이동
+            child: IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () async {
+                await onEdit();
+                // Return to the previous screen
+                Navigator.of(context).pop();
+              },
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.delete),
