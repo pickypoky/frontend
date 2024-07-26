@@ -4,9 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class DiaryScreen extends StatefulWidget {
   final DateTime selectedDay;
-  final VoidCallback? onClose;
+  final VoidCallback onClose;
 
-  const DiaryScreen({super.key, required this.selectedDay, this.onClose});
+  const DiaryScreen({super.key, required this.selectedDay, required this.onClose});
 
   @override
   _DiaryScreenState createState() => _DiaryScreenState();
@@ -64,10 +64,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop(); // Return to the previous screen
       }
-
-      if (widget.onClose != null) {
-        widget.onClose!();
-      }
     }
   }
 
@@ -116,7 +112,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => DiaryScreen(selectedDay: newDate),
+        builder: (context) => DiaryScreen(selectedDay: newDate, onClose: widget.onClose),
       ),
     );
   }
@@ -326,37 +322,32 @@ class _DiaryScreenState extends State<DiaryScreen> {
               ),
               const SizedBox(height: 50.0), // '당신의 이야기를 기록해보세요'와 글 작성 칸 사이 간격 추가
               Expanded(
-                child: SingleChildScrollView(
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      maxHeight: 450.0, // 텍스트 상자의 최대 높이
-                    ),
-                    child: TextField(
-                      controller: _diaryController,
-                      maxLines: null,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: '무엇이든 자유롭게 적어보세요',
-                      ),
-                      expands: false,
-                      minLines: 8, // 최소 줄 수
-                    ),
+                child: TextField(
+                  controller: _diaryController,
+                  maxLines: null,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: '무엇이든 자유롭게 적어보세요',
                   ),
-                ),
-              ),
-              const SizedBox(height: 10.0),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    _saveDiary(_diaryController.text);
-                  },
-                  child: const Text('작성 완료'),
+                  expands: false,
+                  minLines: 8, // 최소 줄 수
                 ),
               ),
             ],
           ],
         ),
       ),
+      bottomNavigationBar: _existingDiaries.isEmpty
+          ? Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ElevatedButton(
+          onPressed: () {
+            _saveDiary(_diaryController.text);
+          },
+          child: const Text('작성 완료'),
+        ),
+      )
+          : null,
     );
   }
 }
@@ -468,42 +459,34 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
             ),
             const SizedBox(height: 30.0), // 날짜와 '당신의 이야기를 기록해보세요' 사이 간격 추가
             Expanded(
-              child: SingleChildScrollView(
-                child: Container(
-                  constraints: const BoxConstraints(
-                    maxHeight: 450.0, // 텍스트 상자의 최대 높이
-                  ),
-                  child: TextField(
-                    controller: _diaryController,
-                    maxLines: null,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: '무엇이든 자유롭게 적어보세요',
-                    ),
-                    expands: false,
-                    minLines: 8, // 최소 줄 수
-                  ),
+              child: TextField(
+                controller: _diaryController,
+                maxLines: null,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '무엇이든 자유롭게 적어보세요',
                 ),
+                expands: false,
+                minLines: 8, // 최소 줄 수
               ),
             ),
-            const SizedBox(height: 10.0),
-            if (widget.isEditMode)
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    widget.onSave(_diaryController.text).then((_) {
-                      Navigator.of(context).pop(); // Save and return to the previous screen
-                    }).catchError((error) {
-                      // Handle the error
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('오류 발생: $error')),
-                      );
-                    });
-                  },
-                  child: const Text('작성 완료'),
-                ),
-              ),
           ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ElevatedButton(
+          onPressed: () {
+            widget.onSave(_diaryController.text).then((_) {
+              Navigator.of(context).pop(); // Save and return to the previous screen
+            }).catchError((error) {
+              // Handle the error
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('오류 발생: $error')),
+              );
+            });
+          },
+          child: const Text('작성 완료'),
         ),
       ),
     );
