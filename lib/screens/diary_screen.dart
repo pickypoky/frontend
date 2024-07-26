@@ -14,7 +14,7 @@ class DiaryScreen extends StatefulWidget {
 
 class _DiaryScreenState extends State<DiaryScreen> {
   final TextEditingController _diaryController = TextEditingController();
-  List<String> _existingDiaries = [];
+  List<Map<String, String>> _existingDiaries = [];
 
   DateTime get _currentDay => widget.selectedDay;
 
@@ -28,18 +28,23 @@ class _DiaryScreenState extends State<DiaryScreen> {
     final prefs = await SharedPreferences.getInstance();
     final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
 
-    final List<String> diaries = prefs.getStringList(diaryKey) ?? [];
-    setState(() {
-      _existingDiaries = diaries;
-    });
+    final List<String>? diaries = prefs.getStringList(diaryKey);
+    if (diaries != null) {
+      setState(() {
+        _existingDiaries = diaries.map((e) {
+          final parts = e.split('||');
+          return {'content': parts[0], 'time': parts[1]};
+        }).toList();
+      });
+    }
   }
 
   Future<void> _saveDiary(String content) async {
     final prefs = await SharedPreferences.getInstance();
     final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
 
-    final List<String> diaries = prefs.getStringList(diaryKey) ?? [];
-    if (diaries.length >= 3) {
+    final List<String>? diaries = prefs.getStringList(diaryKey);
+    if (diaries != null && diaries.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('하루에 작성할 수 있는 일기 개수는 3개까지입니다.')),
       );
@@ -54,11 +59,16 @@ class _DiaryScreenState extends State<DiaryScreen> {
     }
 
     if (content.isNotEmpty) {
-      diaries.add(content);
-      await prefs.setStringList(diaryKey, diaries);
+      final newDiary = '$content||${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}';
+      final updatedDiaries = [...?diaries, newDiary];
+
+      await prefs.setStringList(diaryKey, updatedDiaries);
 
       setState(() {
-        _existingDiaries = diaries;
+        _existingDiaries = updatedDiaries.map((e) {
+          final parts = e.split('||');
+          return {'content': parts[0], 'time': parts[1]};
+        }).toList();
       });
 
       if (Navigator.canPop(context)) {
@@ -72,14 +82,17 @@ class _DiaryScreenState extends State<DiaryScreen> {
     final prefs = await SharedPreferences.getInstance();
     final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
 
-    final List<String> diaries = prefs.getStringList(diaryKey) ?? [];
-
-    if (updatedContent.isNotEmpty) {
-      diaries[index] = updatedContent;
+    final List<String>? diaries = prefs.getStringList(diaryKey);
+    if (diaries != null && updatedContent.isNotEmpty) {
+      final parts = diaries[index].split('||');
+      diaries[index] = '$updatedContent||${parts[1]}'; // Keep the original time
       await prefs.setStringList(diaryKey, diaries);
 
       setState(() {
-        _existingDiaries = diaries;
+        _existingDiaries = diaries.map((e) {
+          final parts = e.split('||');
+          return {'content': parts[0], 'time': parts[1]};
+        }).toList();
       });
 
       if (Navigator.canPop(context)) {
@@ -93,14 +106,16 @@ class _DiaryScreenState extends State<DiaryScreen> {
     final prefs = await SharedPreferences.getInstance();
     final diaryKey = DateFormat('yyyy-MM-dd').format(_currentDay);
 
-    final List<String> diaries = prefs.getStringList(diaryKey) ?? [];
-
-    if (index >= 0 && index < diaries.length) {
+    final List<String>? diaries = prefs.getStringList(diaryKey);
+    if (diaries != null && index >= 0 && index < diaries.length) {
       diaries.removeAt(index);
       await prefs.setStringList(diaryKey, diaries);
 
       setState(() {
-        _existingDiaries = diaries;
+        _existingDiaries = diaries.map((e) {
+          final parts = e.split('||');
+          return {'content': parts[0], 'time': parts[1]};
+        }).toList();
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -133,12 +148,14 @@ class _DiaryScreenState extends State<DiaryScreen> {
     });
   }
 
-  void _viewDiaryDetail(String content, int index) {
+  void _viewDiaryDetail(String content, String time, int index) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => DiaryDetailScreen(
+          date: _currentDay,
           content: content,
+          time: time,
           onEdit: () async {
             await Navigator.push(
               context,
@@ -263,9 +280,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   itemCount: _existingDiaries.length,
                   itemBuilder: (context, index) {
                     final diary = _existingDiaries[index];
-                    final preview = diary.length > 20 ? '${diary.substring(0, 20)}...' : diary;
+                    final preview = diary['content']!.length > 20 ? '${diary['content']!.substring(0, 20)}...' : diary['content']!;
                     return Dismissible(
-                      key: Key('$diary$index'),
+                      key: Key('${diary['content']}$index'),
                       direction: DismissDirection.endToStart,
                       onDismissed: (direction) {
                         _deleteDiary(index);
@@ -277,12 +294,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         child: const Icon(Icons.delete, color: Colors.white),
                       ),
                       child: GestureDetector(
-                        onTap: () => _viewDiaryDetail(diary, index),
+                        onTap: () => _viewDiaryDetail(diary['content']!, diary['time']!, index),
                         child: Container(
                           width: double.infinity, // 가로 길이를 부모 위젯에 맞게 설정
                           margin: const EdgeInsets.only(bottom: 8.0),
                           padding: const EdgeInsets.all(16.0),
-                          height: 100.0, // 박스의 높이를 100.0으로 설정
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey),
                             borderRadius: BorderRadius.circular(8.0),
@@ -298,6 +314,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4.0),
+                              Text(
+                                '작성 시간: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(diary['time']!))}',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12.0,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -499,12 +522,16 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
 
 class DiaryDetailScreen extends StatelessWidget {
   final String content;
+  final String time;
+  final DateTime date;
   final Future<void> Function() onEdit;
   final Future<void> Function() onDelete;
 
   const DiaryDetailScreen({
     super.key,
     required this.content,
+    required this.time,
+    required this.date,
     required this.onEdit,
     required this.onDelete,
   });
@@ -513,36 +540,67 @@ class DiaryDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // 자동으로 추가되는 뒤로가기 버튼 제거
-        title: const Text('일기 상세보기'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        automaticallyImplyLeading: false,
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16.0), // 오른쪽 여백을 추가하여 버튼을 왼쪽으로 이동
+            padding: const EdgeInsets.only(right: 16.0),
             child: IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () async {
-                await onEdit();
-                // Return to the previous screen
-                Navigator.of(context).pop();
-              },
+              icon: const Icon(Icons.clear),
+              onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () async {
-              await onDelete();
-              // Return to the previous screen
-              Navigator.of(context).pop();
-            },
-          ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  DateFormat('yyyy-MM-dd').format(date),
+                  style: const TextStyle(
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: onEdit,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: onDelete,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
-          child: Text(
-            content,
-            style: const TextStyle(fontSize: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                content,
+                style: const TextStyle(fontSize: 16.0),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '작성 시간: $time',
+                style: const TextStyle(color: Colors.grey, fontSize: 12.0),
+              ),
+            ],
           ),
         ),
       ),
