@@ -159,6 +159,46 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
+  Future<void> _showCancelConfirmationDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // 사용자 의도치 않은 닫기 방지
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: const Padding(
+            padding: EdgeInsets.only(top: 20.0), // 상단 여백 추가
+            child: Text(
+              '취소하면 작성한 내용이 사라져요.\n정말 취소할까요?',
+              textAlign: TextAlign.center, // 텍스트 중앙 정렬
+            ),
+          ),
+          actions: [
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 버튼들 중앙 정렬
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // 다이얼로그 닫기
+                    },
+                    child: const Text('계속 쓸게요'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // 다이얼로그 닫기
+                      Navigator.of(context).pop(); // 작성 화면 닫기
+                    },
+                    child: const Text('취소할게요'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,7 +210,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
             child: IconButton(
               icon: const Icon(Icons.clear), // X 아이콘
               onPressed: () {
-                Navigator.of(context).pop(); // 뒤로 가기
+                if (_diaryController.text.isEmpty) {
+                  Navigator.of(context).pop(); // 작성 화면 닫기
+                } else {
+                  _showCancelConfirmationDialog(); // 확인 다이얼로그 표시
+                }
               },
             ),
           ),
@@ -265,6 +309,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 ),
               ),
             ] else ...[
+              const SizedBox(height: 20.0), // 날짜와 '당신의 이야기를 기록해보세요' 사이 간격 추가
               const Center(
                 child: Text(
                   '당신의 이야기를 기록해보세요',
@@ -274,10 +319,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20.0),
+              const SizedBox(height: 50.0), // '당신의 이야기를 기록해보세요'와 글 작성 칸 사이 간격 추가
               Container(
-                constraints: BoxConstraints(
-                  maxHeight: 350.0, // 텍스트 상자의 최대 높이
+                constraints: const BoxConstraints(
+                  maxHeight: 450.0, // 텍스트 상자의 최대 높이
                 ),
                 child: TextField(
                   controller: _diaryController,
@@ -287,7 +332,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     hintText: '무엇이든 자유롭게 적어보세요',
                   ),
                   expands: false,
-                  minLines: 6, // 최소 줄 수
+                  minLines: 8, // 최소 줄 수
                 ),
               ),
               const SizedBox(height: 10.0),
@@ -338,6 +383,46 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
     super.dispose();
   }
 
+  Future<void> _showCancelConfirmationDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // 사용자 의도치 않은 닫기 방지
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: const Padding(
+            padding: EdgeInsets.only(top: 20.0), // 상단 여백 추가
+            child: Text(
+              '취소하면 작성한 내용이 사라져요.\n정말 취소할까요?',
+              textAlign: TextAlign.center, // 텍스트 중앙 정렬
+            ),
+          ),
+          actions: [
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 버튼들 중앙 정렬
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // 다이얼로그 닫기
+                    },
+                    child: const Text('계속 쓸게요'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // 다이얼로그 닫기
+                      Navigator.of(context).pop(); // 작성 화면 닫기
+                    },
+                    child: const Text('취소할게요'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -350,7 +435,11 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
             child: IconButton(
               icon: const Icon(Icons.clear), // X 아이콘
               onPressed: () {
-                Navigator.of(context).pop(); // Return to the previous screen
+                if (_diaryController.text.isEmpty) {
+                  Navigator.of(context).pop(); // 작성 화면 닫기
+                } else {
+                  _showCancelConfirmationDialog(); // 확인 다이얼로그 표시
+                }
               },
             ),
           ),
@@ -381,10 +470,10 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 20.0),
+            const SizedBox(height: 30.0), // 날짜와 '당신의 이야기를 기록해보세요' 사이 간격 추가
             Container(
-              constraints: BoxConstraints(
-                maxHeight: 350.0, // 텍스트 상자의 최대 높이
+              constraints: const BoxConstraints(
+                maxHeight: 450.0, // 텍스트 상자의 최대 높이
               ),
               child: TextField(
                 controller: _diaryController,
@@ -394,7 +483,7 @@ class _DiaryCreationScreenState extends State<DiaryCreationScreen> {
                   hintText: '무엇이든 자유롭게 적어보세요',
                 ),
                 expands: false,
-                minLines: 6, // 최소 줄 수
+                minLines: 8, // 최소 줄 수
               ),
             ),
             const SizedBox(height: 10.0),
