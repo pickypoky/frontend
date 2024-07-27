@@ -325,7 +325,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   child: Text(
                                     '${date.day}',
                                     style: TextStyle(
-                                      color: Colors.black,
+                                      color: Colors.black, // 터치해도 검정색 유지
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -369,7 +369,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   child: Text(
                                     '${date.day}',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: Colors.black, // 터치해도 검정색 유지
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -405,7 +405,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   child: Text(
                                     '${date.day}',
                                     style: TextStyle(
-                                      color: Colors.black,
+                                      color: Colors.black, // 검정색 유지
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
