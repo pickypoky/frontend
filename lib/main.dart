@@ -3,6 +3,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart'; // 로케일 데이터를 불러오기 위한 패키지
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'screens/diary_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
@@ -50,14 +52,54 @@ class _MyHomePageState extends State<MyHomePage> {
   DateTime? _selectedDay; // 초기값을 null로 설정
   DateTime _focusedDay = DateTime.now();
   int _selectedIndex = 0;
+  Map<String, String> _diaryData = {}; // 일기 데이터를 저장하는 맵
+  String? _token; // 로그인 후 저장된 토큰을 사용할 예정
+
+  @override
+  void initState() {
+    super.initState();
+    _loadToken(); // 앱 시작 시 토큰을 로드합니다.
+  }
+
+  Future<void> _loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _token = prefs.getString('accessToken');
+    });
+    _fetchDiaries(); // 토큰 로드 후 데이터 요청
+  }
+
+  Future<void> _fetchDiaries() async {
+    if (_token == null) {
+      print('Token is null');
+      return;
+    }
+
+    final url = Uri.parse('https://pickypoky.com/api/diary?diaryDate=${DateFormat('yyyy-MM-dd').format(_focusedDay)}'); // 백엔드 API URL
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $_token', // Authorization 헤더 추가
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final responseBody = json.decode(response.body);
+      final calendarData = responseBody['result']['calender'] as Map<String, dynamic>;
+
+      setState(() {
+        _diaryData = Map<String, String>.from(calendarData);
+      });
+    } else {
+      // Error handling
+      print('Failed to fetch diaries: ${response.body}');
+    }
+  }
 
   Future<void> _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
-    // 현재 날짜와 선택한 날짜를 비교
     if (selectedDay.isAfter(DateTime.now())) {
-      // 미래의 날짜를 선택한 경우
       _showFutureDateSnackbar();
     } else {
-      // 과거 또는 현재 날짜를 선택한 경우
       setState(() {
         _selectedDay = selectedDay;
         _focusedDay = focusedDay;
@@ -75,7 +117,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ).then((_) {
-        // 네비게이션이 pop된 후 실행될 코드
         setState(() {
           _selectedIndex = 0; // 캘린더 탭으로 이동
         });
@@ -123,7 +164,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ).then((_) {
-        // 네비게이션이 pop된 후 실행될 코드
         setState(() {
           _selectedIndex = 0; // 캘린더 탭으로 이동
         });
@@ -139,6 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _focusedDay.year,
         _focusedDay.month - 1,
       );
+      _fetchDiaries(); // 월 이동 시 데이터 새로고침
     });
   }
 
@@ -148,6 +189,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _focusedDay.year,
         _focusedDay.month + 1,
       );
+      _fetchDiaries(); // 월 이동 시 데이터 새로고침
     });
   }
 
@@ -212,6 +254,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     calendarBuilders: CalendarBuilders(
                       defaultBuilder: (context, date, focusedDay) {
+                        final dateKey = DateFormat('yyyy-MM-dd').format(date);
+                        final diaryStatus = _diaryData[dateKey] ?? 'empty';
+
                         return Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.rectangle,
@@ -224,7 +269,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(4.0),
                                   child: CircleAvatar(
-                                    backgroundImage: AssetImage('assets/circle.png'), // 이미지 경로
+                                    backgroundImage: AssetImage(
+                                      diaryStatus == 'empty'
+                                          ? 'assets/circle.png'
+                                          : 'assets/sample_image.png',
+                                    ), // 이미지 경로
                                     radius: 20.0, // 이미지의 반지름
                                   ),
                                 ),
