@@ -27,3 +27,4 @@ flutter:
   assets:
     - assets/basic_round.png
     - assets/splash.png
+    - assets/touched.png

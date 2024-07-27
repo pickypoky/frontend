@@ -230,7 +230,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _fetchDiaries();
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -239,9 +238,9 @@ class _MyHomePageState extends State<MyHomePage> {
         elevation: 0,
         title: null,
         toolbarHeight: 35.0,
-        iconTheme: IconThemeData(color: Colors.blue), // 아이콘 색상을 파란색으로 변경
+        iconTheme: IconThemeData(color: Colors.blue),
       ),
-      backgroundColor: Colors.white, // 화면 배경 색을 흰색으로 설정
+      backgroundColor: Colors.white,
       body: Column(
         children: [
           Padding(
@@ -283,14 +282,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     rowHeight: 80.0,
                     headerVisible: false,
                     daysOfWeekStyle: DaysOfWeekStyle(
-                        weekdayStyle: TextStyle(fontSize: 13.0),
-                        weekendStyle: TextStyle(fontSize: 13.0),
-                        decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            border: Border(
-                              bottom: BorderSide(color: Colors.transparent, width: 16),
-                            )
-                        )
+                      weekdayStyle: TextStyle(fontSize: 13.0),
+                      weekendStyle: TextStyle(fontSize: 13.0),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        border: Border(
+                          bottom: BorderSide(color: Colors.transparent, width: 16),
+                        ),
+                      ),
                     ),
                     calendarBuilders: CalendarBuilders(
                       defaultBuilder: (context, date, focusedDay) {
@@ -337,10 +336,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         );
                       },
                       selectedBuilder: (context, date, focusedDay) {
+                        final dateKey = DateFormat('yyyy-MM-dd').format(date);
+                        final diaryStatus = _diaryData[dateKey] ?? 'empty';
+
                         return Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.rectangle,
-                            color: Colors.deepPurple,
+                            color: Colors.transparent,
                             border: Border.all(color: Colors.transparent),
                           ),
                           child: Stack(
@@ -350,7 +352,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(4.0),
                                   child: CircleAvatar(
-                                    backgroundImage: AssetImage('assets/sample_image.png'),
+                                    backgroundImage: AssetImage(
+                                      diaryStatus == 'empty'
+                                          ? 'assets/touched.png'  // 선택된 날짜에 대한 이미지 변경
+                                          : 'assets/sample_image.png',
+                                    ),
                                     radius: 20.0,
                                   ),
                                 ),
@@ -377,7 +383,6 @@ class _MyHomePageState extends State<MyHomePage> {
                         return Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.rectangle,
-                            color: Colors.blueAccent,
                             border: Border.all(color: Colors.transparent),
                           ),
                           child: Stack(
@@ -400,7 +405,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   child: Text(
                                     '${date.day}',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: Colors.black,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -418,11 +423,11 @@ class _MyHomePageState extends State<MyHomePage> {
                       cellMargin: const EdgeInsets.all(4.0),
                       cellPadding: const EdgeInsets.all(8.0),
                       todayDecoration: BoxDecoration(
-                        color: Colors.blueAccent,
+                        color: Colors.transparent,
                         shape: BoxShape.circle,
                       ),
                       selectedDecoration: BoxDecoration(
-                        color: Colors.lightBlueAccent,
+                        color: Colors.transparent,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -439,15 +444,15 @@ class _MyHomePageState extends State<MyHomePage> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
-            label: '캘린더',
+            label: ' ',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.today),
-            label: '오늘일기',
+            label: ' ',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: 'MY',
+            label: ' ',
           ),
         ],
       ),

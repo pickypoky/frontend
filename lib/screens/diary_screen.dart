@@ -21,7 +21,6 @@ class DiaryScreen extends StatefulWidget {
 class _DiaryScreenState extends State<DiaryScreen> {
   late DateTime _currentDay;
   final TextEditingController _diaryController = TextEditingController();
-  Map<String, List<Map<String, dynamic>>> _diariesByDate = {};
   String? _token;
 
   @override
@@ -36,50 +35,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     setState(() {
       _token = prefs.getString('accessToken');
     });
-    if (_token != null) {
-      _fetchDiaries();
-    }
-  }
-
-  Future<void> _fetchDiaries() async {
-    final url = Uri.parse('https://pickypoky.com/api/diary/list?diaryDate=${DateFormat('yyyy-MM-dd').format(_currentDay)}');
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final responseBody = json.decode(response.body);
-      if (responseBody['isSuccess']) {
-        final result = responseBody['result'] as List<dynamic>;
-
-        final Map<String, List<Map<String, dynamic>>> newDiariesByDate = {};
-
-        for (var entry in result) {
-          final date = entry['diaryDate'] as String;
-          final diaries = (entry['diaries'] as List<dynamic>).map((item) {
-            final diary = item as Map<String, dynamic>;
-            diary['contents'] = diary['contents'] ?? ''; // null을 빈 문자열로 변환
-            diary['tags'] = diary['tags'] ?? []; // null을 빈 리스트로 변환
-            diary['emoji'] = diary['emoji'] ?? ''; // null을 빈 문자열로 변환
-            return diary;
-          }).toList();
-
-          newDiariesByDate[date] = diaries;
-        }
-
-        setState(() {
-          _diariesByDate = newDiariesByDate;
-        });
-      } else {
-        print('서버 응답 형식이 올바르지 않습니다.');
-      }
-    } else {
-      print('다이어리 목록 가져오기 실패: ${response.body}');
-    }
   }
 
   Future<void> _saveDiary(String content) async {
@@ -115,7 +70,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
       setState(() {
         _diaryController.clear();
-        _fetchDiaries(); // 일기 저장 후 목록을 갱신
       });
 
       Navigator.of(context).push(
@@ -149,7 +103,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('일기가 삭제되었습니다.')),
         );
-        _fetchDiaries(); // 일기 삭제 후 목록을 갱신
       } else {
         print('일기 삭제 실패: ${responseBody['message']}');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -198,14 +151,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
   void _changeDate(int offset) {
     setState(() {
       _currentDay = _currentDay.add(Duration(days: offset));
-      _fetchDiaries(); // 날짜 변경 시 일기 목록을 갱신
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final diariesForSelectedDate = _diariesByDate[DateFormat('yyyy-MM-dd').format(_currentDay)] ?? [];
-
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -219,6 +169,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18.0,
+                color: Colors.black,
               ),
             ),
             IconButton(
@@ -233,47 +184,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (diariesForSelectedDate.isNotEmpty) ...[
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  itemCount: diariesForSelectedDate.length,
-                  itemBuilder: (context, index) {
-                    final diary = diariesForSelectedDate[index];
-                    final content = diary['contents'] ?? ''; // null 체크 추가
-                    final preview = content.length > 20 ? '${content.substring(0, 20)}...' : content;
-
-                    return Dismissible(
-                      key: Key('${diary['diarySeq']}$index'),
-                      direction: DismissDirection.endToStart,
-                      onDismissed: (direction) {
-                        _deleteDiary(diary['diarySeq']);
-                      },
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: const Icon(Icons.delete, color: Colors.white),
-                      ),
-                      child: GestureDetector(
-                        onTap: () => _viewDiaryDetail(diary),
-                        child: Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 8.0),
-                          padding: const EdgeInsets.all(16.0),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: Text(preview),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16.0),
-            ],
             Expanded(
               child: TextField(
                 controller: _diaryController,
@@ -478,17 +388,72 @@ class DiaryDetailScreen extends StatelessWidget {
   }
 }
 
-class DiaryCreationResultScreen extends StatelessWidget {
+class DiaryCreationResultScreen extends StatefulWidget {
   final Map<String, dynamic> diary;
 
   const DiaryCreationResultScreen({Key? key, required this.diary}) : super(key: key);
 
   @override
+  _DiaryCreationResultScreenState createState() => _DiaryCreationResultScreenState();
+}
+
+class _DiaryCreationResultScreenState extends State<DiaryCreationResultScreen> {
+  late TextEditingController _contentController;
+  late TextEditingController _emojiController;
+  late List<String> _tags;
+  String? _token;
+
+  @override
+  void initState() {
+    super.initState();
+    _contentController = TextEditingController(text: widget.diary['contents']);
+    _emojiController = TextEditingController(text: widget.diary['emoji_origin']);
+    _tags = List<String>.from(widget.diary['tags'] ?? []);
+    _loadToken();
+  }
+
+  Future<void> _loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _token = prefs.getString('accessToken');
+    });
+  }
+
+  Future<void> _saveDiary() async {
+    final url = Uri.parse('https://pickypoky.com/api/diary/${widget.diary['diarySeq']}');
+    final response = await http.patch(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: json.encode({
+        'diaryDate': widget.diary['diaryDate'],
+        'contents': _contentController.text,
+        'emoji': _emojiController.text,
+        'tags': _tags,
+      }),
+    );
+
+    final responseBody = utf8.decode(response.bodyBytes);
+    final decodedResponse = json.decode(responseBody);
+
+    if (response.statusCode == 200 && decodedResponse['isSuccess']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('일기가 저장되었습니다.')),
+      );
+      Navigator.of(context).pop();
+    } else {
+      print('일기 저장 실패: ${decodedResponse['message']}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('일기 저장 실패: ${decodedResponse['message']}')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String content = diary['contents'] ?? '';
-    final String date = diary['diaryDate'] ?? '';
-    final String emoji = diary['emoji_origin'] ?? ''; // 서버 응답에서 emoji_origin을 가져옴
-    final String tags = (diary['tags'] as List<dynamic>).join(', ');
+    final String date = widget.diary['diaryDate'] ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -505,22 +470,55 @@ class DiaryCreationResultScreen extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8.0),
-            Text(
-              'Emoji: $emoji',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'Tags: $tags',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8.0),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Text(content),
+            TextField(
+              controller: _emojiController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: '이모지를 입력하세요',
               ),
             ),
+            const SizedBox(height: 8.0),
+            TextField(
+              controller: _contentController,
+              maxLines: null,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: '일기 내용을 입력하세요',
+              ),
+            ),
+            const SizedBox(height: 8.0),
+            Wrap(
+              spacing: 8.0,
+              children: _tags.map((tag) {
+                return Chip(
+                  label: Text(tag),
+                  onDeleted: () {
+                    setState(() {
+                      _tags.remove(tag);
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            TextField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: '태그를 입력하세요',
+              ),
+              onSubmitted: (value) {
+                setState(() {
+                  _tags.add(value);
+                });
+              },
+            ),
             const SizedBox(height: 16.0),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ElevatedButton(
+                onPressed: _saveDiary,
+                child: const Text('일기를 저장할게요'),
+              ),
+            ),
           ],
         ),
       ),
