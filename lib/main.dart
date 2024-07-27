@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/date_symbol_data_local.dart'; // 로케일 데이터를 불러오기 위한 패키지
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -11,7 +11,7 @@ import 'screens/signup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting(); // 로케일 데이터 초기화
+  await initializeDateFormatting();
   runApp(const MyApp());
 }
 
@@ -32,9 +32,8 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
         '/home': (context) => const MyHomePage(title: '달력'),
-        //'/my_page': (context) => const MyPage(), // MY 페이지로 이동
       },
-      locale: const Locale('ko', 'KR'), // 로케일을 한국어로 설정
+      locale: const Locale('ko', 'KR'),
     );
   }
 }
@@ -49,16 +48,16 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  DateTime? _selectedDay; // 초기값을 null로 설정
+  DateTime? _selectedDay;
   DateTime _focusedDay = DateTime.now();
   int _selectedIndex = 0;
-  Map<String, String> _diaryData = {}; // 일기 데이터를 저장하는 맵
-  String? _token; // 로그인 후 저장된 토큰을 사용할 예정
+  Map<String, String> _diaryData = {};
+  String? _token;
 
   @override
   void initState() {
     super.initState();
-    _loadToken(); // 앱 시작 시 토큰을 로드합니다.
+    _loadToken();
   }
 
   Future<void> _loadToken() async {
@@ -66,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _token = prefs.getString('accessToken');
     });
-    _fetchDiaries(); // 토큰 로드 후 데이터 요청
+    _fetchDiaries();
   }
 
   Future<void> _fetchDiaries() async {
@@ -75,11 +74,11 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    final url = Uri.parse('https://pickypoky.com/api/diary?diaryDate=${DateFormat('yyyy-MM-dd').format(_focusedDay)}'); // 백엔드 API URL
+    final url = Uri.parse('https://pickypoky.com/api/diary?diaryDate=${DateFormat('yyyy-MM-dd').format(_focusedDay)}');
     final response = await http.get(
       url,
       headers: {
-        'Authorization': 'Bearer $_token', // Authorization 헤더 추가
+        'Authorization': 'Bearer $_token',
       },
     );
 
@@ -91,7 +90,6 @@ class _MyHomePageState extends State<MyHomePage> {
         _diaryData = Map<String, String>.from(calendarData);
       });
     } else {
-      // Error handling
       print('Failed to fetch diaries: ${response.body}');
     }
   }
@@ -111,14 +109,14 @@ class _MyHomePageState extends State<MyHomePage> {
             selectedDay: selectedDay,
             onClose: () {
               setState(() {
-                _selectedIndex = 0; // 캘린더 탭으로 이동
+                _selectedIndex = 0;
               });
             },
           ),
         ),
       ).then((_) {
         setState(() {
-          _selectedIndex = 0; // 캘린더 탭으로 이동
+          _selectedIndex = 0;
         });
       });
     }
@@ -129,14 +127,14 @@ class _MyHomePageState extends State<MyHomePage> {
       SnackBar(
         content: const Text(
           '미래 일기는 작성할 수 없어요!',
-          style: TextStyle(fontSize: 18.0), // 내용 텍스트 사이즈 조정
+          style: TextStyle(fontSize: 18.0),
         ),
-        duration: const Duration(seconds: 2), // 메시지가 표시되는 시간
-        behavior: SnackBarBehavior.floating, // 스낵바를 화면 중앙에 띄우기
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0), // 모서리 둥글게
+          borderRadius: BorderRadius.circular(8.0),
         ),
-        margin: const EdgeInsets.all(16.0), // 스낵바의 여백
+        margin: const EdgeInsets.all(16.0),
       ),
     );
   }
@@ -149,7 +147,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final now = DateTime.now();
 
     if (index == 0) {
-      Navigator.pushNamed(context, '/home'); // 캘린더 페이지로 이동
+      Navigator.pushNamed(context, '/home');
     } else if (index == 1) {
       Navigator.push(
         context,
@@ -158,18 +156,18 @@ class _MyHomePageState extends State<MyHomePage> {
             selectedDay: now,
             onClose: () {
               setState(() {
-                _selectedIndex = 0; // 캘린더 탭으로 이동
+                _selectedIndex = 0;
               });
             },
           ),
         ),
       ).then((_) {
         setState(() {
-          _selectedIndex = 0; // 캘린더 탭으로 이동
+          _selectedIndex = 0;
         });
       });
     } else if (index == 2) {
-      Navigator.pushNamed(context, '/my_page'); // MY 페이지로 이동
+      Navigator.pushNamed(context, '/my_page');
     }
   }
 
@@ -179,7 +177,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _focusedDay.year,
         _focusedDay.month - 1,
       );
-      _fetchDiaries(); // 월 이동 시 데이터 새로고침
+      _fetchDiaries();
     });
   }
 
@@ -189,7 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _focusedDay.year,
         _focusedDay.month + 1,
       );
-      _fetchDiaries(); // 월 이동 시 데이터 새로고침
+      _fetchDiaries();
     });
   }
 
@@ -197,24 +195,24 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue, // AppBar 배경 색상 변경
-        elevation: 0, // 그림자 제거
-        title: null, // 제목을 표시하지 않음
-        toolbarHeight: 35.0, // AppBar 높이 조정
+        backgroundColor: Colors.blue,
+        elevation: 0,
+        title: null,
+        toolbarHeight: 35.0,
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 2.0), // 왼쪽에 약간의 여백 추가
+            padding: const EdgeInsets.only(left: 2.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start, // 왼쪽 정렬
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
                   onPressed: _onLeftArrowPressed,
                 ),
                 Text(
-                  DateFormat.yMMMM('ko_KR').format(_focusedDay), // 한국어로 월 표시
+                  DateFormat.yMMMM('ko_KR').format(_focusedDay),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18.0,
@@ -227,28 +225,28 @@ class _MyHomePageState extends State<MyHomePage> {
               ],
             ),
           ),
-          SizedBox(height: 8.0), // 간격 추가
+          SizedBox(height: 8.0),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
                   TableCalendar(
-                    locale: 'ko_KR', // 달력 로케일을 한국어로 설정
+                    locale: 'ko_KR',
                     firstDay: DateTime.utc(2020, 1, 1),
                     lastDay: DateTime.utc(2030, 12, 31),
                     focusedDay: _focusedDay,
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                     onDaySelected: _onDaySelected,
                     calendarFormat: CalendarFormat.month,
-                    rowHeight: 80.0, // 각 행의 높이를 조정합니다 (요일과 날짜 사이의 간격)
-                    headerVisible: false, // 기본 헤더 숨김
+                    rowHeight: 80.0,
+                    headerVisible: false,
                     daysOfWeekStyle: DaysOfWeekStyle(
-                        weekdayStyle: TextStyle(fontSize: 13.0), // 요일 글자 크기 조정
-                        weekendStyle: TextStyle(fontSize: 13.0), // 주말 글자 크기 조정
+                        weekdayStyle: TextStyle(fontSize: 13.0),
+                        weekendStyle: TextStyle(fontSize: 13.0),
                         decoration: BoxDecoration(
                             color: Colors.transparent,
                             border: Border(
-                              bottom: BorderSide(color: Colors.transparent, width: 16), // 요일과 날짜 사이 공백 (여기서 조정)
+                              bottom: BorderSide(color: Colors.transparent, width: 16),
                             )
                         )
                     ),
@@ -271,15 +269,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                   child: CircleAvatar(
                                     backgroundImage: AssetImage(
                                       diaryStatus == 'empty'
-                                          ? 'assets/circle.png'
+                                          ? 'assets/basic_round.png'
                                           : 'assets/sample_image.png',
-                                    ), // 이미지 경로
-                                    radius: 20.0, // 이미지의 반지름
+                                    ),
+                                    radius: 20.0,
                                   ),
                                 ),
                               ),
                               Positioned(
-                                top: 4.0, // 날짜를 셀의 상단에 배치
+                                top: 4.0,
                                 left: 0,
                                 right: 0,
                                 child: Center(
@@ -310,13 +308,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(4.0),
                                   child: CircleAvatar(
-                                    backgroundImage: AssetImage('assets/sample_image.png'), // 이미지 경로
-                                    radius: 20.0, // 이미지의 반지름
+                                    backgroundImage: AssetImage('assets/sample_image.png'),
+                                    radius: 20.0,
                                   ),
                                 ),
                               ),
                               Positioned(
-                                top: 4.0, // 날짜를 셀의 상단에 배치
+                                top: 4.0,
                                 left: 0,
                                 right: 0,
                                 child: Center(
@@ -347,13 +345,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(4.0),
                                   child: CircleAvatar(
-                                    backgroundImage: AssetImage('assets/sample_image.png'), // 이미지 경로
-                                    radius: 20.0, // 이미지의 반지름
+                                    backgroundImage: AssetImage('assets/basic_round.png'),
+                                    radius: 20.0,
                                   ),
                                 ),
                               ),
                               Positioned(
-                                top: 4.0, // 날짜를 셀의 상단에 배치
+                                top: 4.0,
                                 left: 0,
                                 right: 0,
                                 child: Center(
@@ -371,28 +369,28 @@ class _MyHomePageState extends State<MyHomePage> {
                         );
                       },
                       outsideBuilder: (context, date, focusedDay) {
-                        return SizedBox.shrink(); // 현재 달에 속하지 않는 날짜를 숨김
+                        return SizedBox.shrink();
                       },
                     ),
                     calendarStyle: CalendarStyle(
-                      cellMargin: const EdgeInsets.all(4.0), // 셀 사이의 간격을 조절합니다
-                      cellPadding: const EdgeInsets.all(8.0), // 셀 내부의 간격을 조절합니다
+                      cellMargin: const EdgeInsets.all(4.0),
+                      cellPadding: const EdgeInsets.all(8.0),
                       todayDecoration: BoxDecoration(
                         color: Colors.blueAccent,
                         shape: BoxShape.circle,
                       ),
                       selectedDecoration: BoxDecoration(
-                        color: Colors.lightBlueAccent, // 오늘 날짜 강조
+                        color: Colors.lightBlueAccent,
                         shape: BoxShape.circle,
                       ),
                     ),
                   ),
-                  SizedBox(height: 16.0), // 요일과 달력 사이 간격 추가
+                  SizedBox(height: 16.0),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Container(
-                      color: Colors.black, // 검정색 직선
-                      height: 1.0, // 선 두께
+                      color: Colors.black,
+                      height: 1.0,
                     ),
                   ),
                 ],
