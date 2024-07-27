@@ -8,15 +8,61 @@ import 'diary_detail_screen.dart';
 import 'diary_edit_screen.dart';
 import 'diary_list_screen.dart';
 
+class DiaryListView extends StatelessWidget {
+  final List<Map<String, dynamic>> diaries; // 날짜별 일기가 아니라 개별 일기 리스트
+  final void Function(Map<String, dynamic>) onDiaryTap;
+  final void Function(Map<String, dynamic>) onDeleteDiary;
+
+  const DiaryListView({
+    Key? key,
+    required this.diaries,
+    required this.onDiaryTap,
+    required this.onDeleteDiary,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: diaries.map((diary) {
+        return Dismissible(
+          key: Key(diary['diarySeq'].toString()), // diarySeq를 사용하여 고유 키 설정
+          background: Container(
+            color: Colors.red,
+            child: const Align(
+              alignment: Alignment.centerRight, // 오른쪽에서 왼쪽으로 스와이프
+              child: Padding(
+                padding: EdgeInsets.only(right: 16.0),
+                child: Icon(Icons.delete, color: Colors.white),
+              ),
+            ),
+          ),
+          direction: DismissDirection.endToStart, // 오른쪽에서 왼쪽으로 스와이프
+          onDismissed: (direction) {
+            onDeleteDiary(diary); // 일기 삭제 처리
+          },
+          child: ListTile(
+            title: Text(diary['contents']),
+            subtitle: Text(DateFormat('yyyy-MM-dd – kk:mm').format(DateTime.parse(diary['createdAt']))),
+            trailing: Text(diary['emoji'] ?? ''),
+            onTap: () {
+              onDiaryTap(diary);
+            },
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
 class DiaryScreen extends StatefulWidget {
   final DateTime selectedDay;
   final VoidCallback onClose;
 
   const DiaryScreen({
-    super.key,
+    Key? key,
     required this.selectedDay,
     required this.onClose,
-  });
+  }) : super(key: key);
 
   @override
   _DiaryScreenState createState() => _DiaryScreenState();
@@ -26,14 +72,14 @@ class _DiaryScreenState extends State<DiaryScreen> {
   late DateTime _currentDay;
   final TextEditingController _diaryController = TextEditingController();
   String? _token;
-  List<dynamic> _diaries = []; // 추가: 일기 목록을 저장하는 리스트
+  List<Map<String, dynamic>> _diaries = []; // 날짜별 일기가 아니라 개별 일기 리스트
 
   @override
   void initState() {
     super.initState();
     _currentDay = widget.selectedDay;
     _loadToken().then((_) {
-      _loadDiaries(); // 추가: 일기를 불러오는 함수 호출
+      _fetchDiaries(); // 일기 데이터를 가져오는 함수 호출
     });
   }
 
@@ -44,13 +90,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
     });
   }
 
-  Future<void> _loadDiaries() async {
+  Future<void> _fetchDiaries() async {
     if (_token == null) {
-      print('토큰이 없습니다.');
+      print('Token is null');
       return;
     }
 
-    final url = Uri.parse('https://pickypoky.com/api/diary/list');
+    final url = Uri.parse('https://pickypoky.com/api/diary/list?diaryDate=${DateFormat('yyyy-MM-dd').format(_currentDay)}');
     final response = await http.get(
       url,
       headers: {
@@ -60,24 +106,35 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
 
     if (response.statusCode == 200) {
-      final responseBody = utf8.decode(response.bodyBytes);
-      final decodedResponse = json.decode(responseBody);
+      final responseBody = utf8.decode(response.bodyBytes); // UTF-8로 디코딩
+      final Map<String, dynamic> decodedResponse = json.decode(responseBody);
 
-      setState(() {
-        _diaries = decodedResponse['result']; // 일기 목록 갱신
-      });
+      if (decodedResponse['isSuccess']) {
+        final resultList = decodedResponse['result'] as List<dynamic>;
+
+        // 선택한 날짜의 일기만 필터링
+        final List<Map<String, dynamic>> tempDiaries = [];
+        for (var dayData in resultList) {
+          final diaryDate = dayData['diaryDate'] as String;
+          if (diaryDate == DateFormat('yyyy-MM-dd').format(_currentDay)) {
+            final diaries = dayData['diaries'] as List<dynamic>;
+            tempDiaries.addAll(diaries.map((item) => item as Map<String, dynamic>).toList());
+          }
+        }
+
+        setState(() {
+          _diaries = tempDiaries;
+        });
+      } else {
+        print('Failed to fetch diaries: ${decodedResponse['message']}');
+      }
     } else {
-      final responseBody = utf8.decode(response.bodyBytes);
-      final decodedResponse = json.decode(response.body);
-      print('일기 불러오기 실패: ${decodedResponse['message']}');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('일기 불러오기 실패: ${decodedResponse['message']}')),
-      );
+      print('Failed to fetch diaries: ${response.body}');
     }
   }
 
   Future<void> _saveDiary(String content) async {
-    const int maxContentLength = 1000; // 예: 1000자로 설정
+    const int maxContentLength = 1000;
 
     if (content.length > maxContentLength) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,7 +144,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
     }
 
     if (_token == null) {
-      print('토큰이 없습니다.');
+      print('Token is null');
       return;
     }
 
@@ -116,7 +173,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
         _diaryController.clear();
       });
 
-      await _loadDiaries(); // 추가: 일기 저장 후 목록을 갱신
+      await _fetchDiaries(); // 일기 저장 후 목록 갱신
 
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -126,7 +183,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
         ),
       );
     } else {
-      print('일기 저장 실패: ${decodedResponse['message']}');
+      print('Failed to save diary: ${decodedResponse['message']}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('일기 저장 실패: ${decodedResponse['message']}')),
       );
@@ -140,7 +197,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           initialContent: content,
           onSave: (newContent) async {
             await _saveDiary(newContent);
-            await _loadDiaries(); // 추가: 일기 저장 후 목록 갱신
+            await _fetchDiaries(); // 일기 저장 후 목록 갱신
           },
         ),
       ),
@@ -164,7 +221,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
   void _changeDate(int offset) {
     setState(() {
       _currentDay = _currentDay.add(Duration(days: offset));
-      _loadDiaries(); // 추가: 날짜 변경 시 일기 목록 갱신
+      _fetchDiaries(); // 날짜 변경 시 일기 목록 갱신
     });
   }
 
@@ -174,31 +231,33 @@ class _DiaryScreenState extends State<DiaryScreen> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: Colors.white, // 알림창 배경 색상을 흰색으로 설정
+            backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5.0), // 모서리를 살짝 둥글게 설정
+              borderRadius: BorderRadius.circular(5.0),
             ),
             titlePadding: EdgeInsets.all(0),
-            contentPadding: EdgeInsets.symmetric(horizontal: 40.0, vertical: 20.0), // 기본 contentPadding 조정
+            contentPadding: EdgeInsets.symmetric(horizontal: 40.0, vertical: 20.0),
             title: Column(
               children: [
                 Padding(
                   padding: EdgeInsets.only(top: 20.0),
-                  child: Image.asset('assets/ic_alert.png'), // 원하는 이미지 경로로 변경
+                  child: Image.asset('assets/ic_alert.png'),
                 ),
                 const Padding(
                   padding: EdgeInsets.all(14.0),
                   child: Text(
                     '정말 나가시나요?',
-                    style: TextStyle(color: Colors.black,
-                      fontWeight: FontWeight.bold, ), // 검정색으로 설정
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
             content: const Text(
               '지금까지 작성한 모든 내용이 사라져요!',
-              style: TextStyle(color: Colors.grey), // 회색으로 설정
+              style: TextStyle(color: Colors.grey),
             ),
             actions: [
               Row(
@@ -206,10 +265,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 children: [
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      primary: Color(0xF7F7F7), // 배경 색상 설정
-                      onPrimary: Colors.black, // 텍스트 색상 설정
+                      primary: Color(0xF7F7F7),
+                      onPrimary: Colors.black,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4.0), // 모서리를 살짝 둥글게 설정
+                        borderRadius: BorderRadius.circular(4.0),
                       ),
                     ),
                     onPressed: () {
@@ -217,13 +276,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     },
                     child: const Text('취소'),
                   ),
-                  const SizedBox(width: 8), // 버튼 사이 간격 추가
+                  const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      primary: Color(0xFFA89AFD), // 배경 색상 설정
-                      onPrimary: Colors.white, // 텍스트 색상 설정
+                      primary: Color(0xFFA89AFD),
+                      onPrimary: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4.0), // 모서리를 살짝 둥글게 설정
+                        borderRadius: BorderRadius.circular(4.0),
                       ),
                     ),
                     onPressed: () {
@@ -239,10 +298,43 @@ class _DiaryScreenState extends State<DiaryScreen> {
       );
 
       if (shouldExit == true) {
-        Navigator.of(context).pop(); // 달력 화면으로 돌아가기
+        Navigator.of(context).pop();
       }
     } else {
-      Navigator.of(context).pop(); // 달력 화면으로 돌아가기
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _deleteDiary(Map<String, dynamic> diary) async {
+    if (_token == null) {
+      print('Token is null');
+      return;
+    }
+
+    final diarySeq = diary['diarySeq']; // diarySeq를 사용하여 URL 생성
+    final url = Uri.parse('https://pickypoky.com/api/diary/$diarySeq');
+    final response = await http.delete(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+    );
+
+    final responseBody = utf8.decode(response.bodyBytes);
+    final decodedResponse = json.decode(responseBody);
+
+    if (response.statusCode == 200 && decodedResponse['isSuccess']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('일기가 삭제되었습니다.')),
+      );
+
+      await _fetchDiaries(); // 삭제 후 목록 갱신
+    } else {
+      print('Failed to delete diary: ${decodedResponse['message']}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('일기 삭제 실패: ${decodedResponse['message']}')),
+      );
     }
   }
 
@@ -250,16 +342,16 @@ class _DiaryScreenState extends State<DiaryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: null, // 왼쪽 화살표 제거
+        leading: null,
         title: Row(
-          mainAxisSize: MainAxisSize.min, // 왼쪽으로 보내기 위해 추가
+          mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
               icon: const Icon(Icons.chevron_left),
               onPressed: () => _changeDate(-1),
             ),
             Text(
-              DateFormat('yyyy년 M월 d일').format(_currentDay), // 날짜 형식 변경
+              DateFormat('yyyy년 M월 d일').format(_currentDay),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18.0,
@@ -273,13 +365,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
           ],
         ),
         actions: [
-          const SizedBox(width: 30), // 간격을 위해 추가
+          const SizedBox(width: 30),
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: _showExitConfirmationDialog,
           ),
         ],
-        automaticallyImplyLeading: false, // 자동으로 leading 아이콘을 추가하지 않도록 설정
+        automaticallyImplyLeading: false,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -291,6 +383,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   ? DiaryListView(
                 diaries: _diaries,
                 onDiaryTap: _viewDiaryDetail,
+                onDeleteDiary: _deleteDiary,
               )
                   : TextField(
                 controller: _diaryController,
@@ -302,27 +395,44 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 minLines: 8,
               ),
             ),
-            const SizedBox(height: 8.0), // 일기 작성 칸을 위로 올리기 위해 간격을 조정
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Pickypocky와 내 감정 보러가기 →',
-                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold,
-                  color: Color(0xFFA89AFD)),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    _diaries.isNotEmpty ? _navigateToDiaryCreation() : _saveDiary(_diaryController.text);
-                  },
-                  child: Image.asset('assets/analysis_start.png'), // 원하는 이미지 경로로 변경
-                ),
-              ],
-            ),
-            const SizedBox(height: 16.0), // 이미지 버튼과 텍스트를 위로 올리기 위해 간격을 조정
+            if (_diaries.isEmpty) // 일기가 없을 때만 표시
+              const SizedBox(height: 8.0),
+            if (_diaries.isEmpty) // 일기가 없을 때만 표시
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Pickypocky와 내 감정 보러가기 →',
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFA89AFD),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      if (_diaryController.text.isNotEmpty) {
+                        _saveDiary(_diaryController.text);
+                      } else {
+                        _navigateToDiaryCreation();
+                      }
+                    },
+                    child: Image.asset('assets/analysis_start.png'),
+                  ),
+                ],
+              ),
+            if (_diaries.isEmpty) // 일기가 없을 때만 표시
+              const SizedBox(height: 16.0),
           ],
         ),
       ),
+      floatingActionButton: _diaries.isNotEmpty
+          ? FloatingActionButton(
+        onPressed: () => _navigateToDiaryCreation(),
+        child: Icon(Icons.add),
+        tooltip: '새 일기 작성',
+      )
+          : null, // 일기 내역이 없을 때는 버튼을 숨김
     );
   }
 }
