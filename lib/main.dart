@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Color(0x878AFF)),
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
@@ -195,11 +195,13 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.white,
         elevation: 0,
         title: null,
         toolbarHeight: 35.0,
+        iconTheme: IconThemeData(color: Colors.blue), // 아이콘 색상을 파란색으로 변경
       ),
+      backgroundColor: Colors.white, // 화면 배경 색을 흰색으로 설정
       body: Column(
         children: [
           Padding(
@@ -383,14 +385,6 @@ class _MyHomePageState extends State<MyHomePage> {
                         color: Colors.lightBlueAccent,
                         shape: BoxShape.circle,
                       ),
-                    ),
-                  ),
-                  SizedBox(height: 16.0),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Container(
-                      color: Colors.black,
-                      height: 1.0,
                     ),
                   ),
                 ],
