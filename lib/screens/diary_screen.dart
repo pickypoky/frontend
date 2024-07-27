@@ -359,7 +359,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     border: OutlineInputBorder(),
                     hintText: '무엇이든 자유롭게 적어보세요',
                   ),
-                  expands: false,
                   minLines: 8, // 최소 줄 수
                 ),
               ),
@@ -396,31 +395,60 @@ class DiaryCreationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController controller =
-    TextEditingController(text: initialContent);
+    final TextEditingController controller = TextEditingController(text: initialContent);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(isEditMode ? '일기 수정' : '일기 작성'),
+        automaticallyImplyLeading: false, // 왼쪽 상단 뒤로가기 버튼 삭제
         actions: [
           IconButton(
-            icon: const Icon(Icons.check),
+            icon: const Icon(Icons.close), // X 버튼 추가
             onPressed: () {
-              onSave(controller.text);
-              Navigator.of(context).pop(); // Go back after saving
+              Navigator.of(context).pop(); // 뒤로가기
             },
           ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: TextField(
-          controller: controller,
-          maxLines: null,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: '일기 내용을 입력하세요',
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20.0), // 날짜와 제목 사이 간격 추가
+            const Center(
+              child: Text(
+                '당신의 이야기를 기록해보세요',
+                style: TextStyle(
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 50.0), // 제목과 글 작성 칸 사이 간격 추가
+            Expanded(
+              child: TextField(
+                controller: controller,
+                maxLines: null,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '무엇이든 자유롭게 적어보세요',
+                ),
+                minLines: 8, // 최소 줄 수
+              ),
+            ),
+            const SizedBox(height: 16.0), // 작성 완료 버튼과 글 작성 칸 사이 간격 추가
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ElevatedButton(
+                onPressed: () {
+                  onSave(controller.text);
+                  Navigator.of(context).pop(); // 뒤로가기
+                },
+                child: const Text('작성 완료'),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -506,6 +534,7 @@ class DiaryDetailScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).pop(); // 다이얼로그 닫기
                       onDelete(); // 일기 삭제
+                      Navigator.of(context).pop(); // Return to the previous screen
                     },
                     child: const Text('삭제'),
                   ),
