@@ -297,7 +297,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 maxLines: null,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: '무엇이든 자유롭게 적어보세요',
+                  hintText: '무엇이든 자유롭게 적어볼까요?',
                 ),
                 minLines: 8,
               ),
