@@ -39,7 +39,7 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     try {
-      final url = Uri.parse('https://pickypoky.com/api/user/signup');  // 백엔드의 API URL로 변경해주세요
+      final url = Uri.parse('https://pickypoky.com/api/user/signup');  // 백엔드 API
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},

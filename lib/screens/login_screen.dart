@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'signup_screen.dart';
 import '../main.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,20 +20,48 @@ class _LoginScreenState extends State<LoginScreen> {
     final username = _usernameController.text;
     final password = _passwordController.text;
 
-    final prefs = await SharedPreferences.getInstance();
-    final storedUsername = prefs.getString('username');
-    final storedPassword = prefs.getString('password');
+    try {
+      final url = Uri.parse('https://pickypoky.com/api/user/login');  // 백엔드 API
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'userId': username,
+          'password': password,
+        }),
+      );
 
-    if (username == storedUsername && password == storedPassword) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => const MyHomePage(title: '월간 달력'),
-      ));
-    } else {
+      final responseBody = json.decode(response.body);
+
+      if (response.statusCode == 200 && responseBody['isSuccess']) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('accessToken', responseBody['result']['accessToken']);
+
+        Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (context) => const MyHomePage(title: '월간 달력'),
+        ));
+      } else {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(responseBody['message']),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error: $e');
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Error'),
-          content: const Text('Invalid username or password'),
+          content: const Text('Something went wrong. Please try again.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
