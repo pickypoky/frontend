@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'signup_screen.dart';
-import '../main.dart';
+import '../main.dart'; // MyHomePage import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
