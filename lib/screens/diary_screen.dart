@@ -50,7 +50,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
       return;
     }
 
-    final url = Uri.parse('https://pickypoky.com/api/diaries?date=${DateFormat('yyyy-MM-dd').format(_currentDay)}');
+    final url = Uri.parse('https://pickypoky.com/api/diary/list');
     final response = await http.get(
       url,
       headers: {
