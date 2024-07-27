@@ -28,3 +28,5 @@ flutter:
     - assets/basic_round.png
     - assets/splash.png
     - assets/touched.png
+    - assets/ic_alert.png
+    - assets/analysis_start.png
