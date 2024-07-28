@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'diary_list_screen.dart'; // DiaryListScreen을 import
 
 class DiaryCreationResultScreen extends StatefulWidget {
   final Map<String, dynamic> diary;
@@ -67,7 +68,8 @@ class _DiaryCreationResultScreenState extends State<DiaryCreationResultScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('일기가 저장되었습니다.')),
       );
-      Navigator.of(context).pop();
+      // 일기 저장 후 메인 화면으로 돌아가기
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (Route<dynamic> route) => false);
     } else {
       print('일기 저장 실패: ${decodedResponse['message']}');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,76 +140,66 @@ class _DiaryCreationResultScreenState extends State<DiaryCreationResultScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16.0),
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black),
-                borderRadius: BorderRadius.circular(8.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16.0),
+              Center(
+                child: const Text('나의 감정', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('나의 감정', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8.0),
-                  // 여기에 감정 관련 내용을 추가할 수 있습니다.
-                ],
+              const SizedBox(height: 16.0),
+              TextField(
+                controller: _emojiController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '이모지를 입력하세요',
+                ),
               ),
-            ),
-            const SizedBox(height: 16.0),
-            TextField(
-              controller: _emojiController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: '이모지를 입력하세요',
+              const SizedBox(height: 8.0),
+              TextField(
+                controller: _contentController,
+                maxLines: null,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '일기 내용을 입력하세요',
+                ),
               ),
-            ),
-            const SizedBox(height: 8.0),
-            TextField(
-              controller: _contentController,
-              maxLines: null,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: '일기 내용을 입력하세요',
+              const SizedBox(height: 8.0),
+              Wrap(
+                spacing: 8.0,
+                children: _tags.map((tag) {
+                  return Chip(
+                    label: Text(tag),
+                    onDeleted: () {
+                      setState(() {
+                        _tags.remove(tag);
+                      });
+                    },
+                  );
+                }).toList(),
               ),
-            ),
-            const SizedBox(height: 8.0),
-            Wrap(
-              spacing: 8.0,
-              children: _tags.map((tag) {
-                return Chip(
-                  label: Text(tag),
-                  onDeleted: () {
-                    setState(() {
-                      _tags.remove(tag);
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            TextField(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: '키워드를 입력하세요',
+              TextField(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '키워드를 입력하세요',
+                ),
+                onSubmitted: (value) {
+                  setState(() {
+                    _tags.add(value);
+                  });
+                },
               ),
-              onSubmitted: (value) {
-                setState(() {
-                  _tags.add(value);
-                });
-              },
-            ),
-            const SizedBox(height: 16.0),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: ElevatedButton(
-                onPressed: _saveDiary,
-                child: const Text('일기를 저장할게요'),
+              const SizedBox(height: 16.0),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: ElevatedButton(
+                  onPressed: _saveDiary,
+                  child: const Text('일기를 저장할게요'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

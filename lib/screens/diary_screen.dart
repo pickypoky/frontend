@@ -423,16 +423,17 @@ class _DiaryScreenState extends State<DiaryScreen> {
               ),
             if (_diaries.isEmpty) // 일기가 없을 때만 표시
               const SizedBox(height: 16.0),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: FloatingActionButton(
+                onPressed: () => _navigateToDiaryCreation(),
+                child: Icon(Icons.add),
+                tooltip: '새 일기 작성',
+              ),
+            ),
           ],
         ),
       ),
-      floatingActionButton: _diaries.isNotEmpty
-          ? FloatingActionButton(
-        onPressed: () => _navigateToDiaryCreation(),
-        child: Icon(Icons.add),
-        tooltip: '새 일기 작성',
-      )
-          : null, // 일기 내역이 없을 때는 버튼을 숨김
     );
   }
 }

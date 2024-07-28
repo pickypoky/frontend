@@ -26,7 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Error'),
-          content: const Text('Passwords do not match'),
+          content: const Text('비밀 번호를 다시 입력해 주세요!'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -59,7 +59,7 @@ class _SignupScreenState extends State<SignupScreen> {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Success'),
-            content: const Text('회원가입이 완료되었습니다.'),
+            content: const Text('회원 가입이 완료되었습니다.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -104,7 +104,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign Up')),
+      appBar: AppBar(title: const Text('회원 가입')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -112,22 +112,29 @@ class _SignupScreenState extends State<SignupScreen> {
           children: [
             TextField(
               controller: _usernameController,
-              decoration: const InputDecoration(labelText: 'Username'),
+              decoration: const InputDecoration(labelText: '아이디'),
             ),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(labelText: '비밀번호'),
               obscureText: true,
             ),
             TextField(
               controller: _confirmPasswordController,
-              decoration: const InputDecoration(labelText: 'Confirm Password'),
+              decoration: const InputDecoration(labelText: '비밀번호 확인'),
               obscureText: true,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                primary: const Color(0xFFA89AFD),
+                onPrimary: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+              ),
               onPressed: _signup,
-              child: const Text('Sign Up'),
+              child: const Text('가입 완료'),
             ),
           ],
         ),

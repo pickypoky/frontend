@@ -84,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('로그인')),
+      appBar: AppBar(title: const Text('Pickypoky')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -101,12 +101,19 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                primary: const Color(0xFFA89AFD),
+                onPrimary: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+              ),
               onPressed: _login,
-              child: const Text('Login'),
+              child: const Text('로그인'),
             ),
             TextButton(
               onPressed: _navigateToSignup,
-              child: const Text('Sign Up'),
+              child: const Text('회원 가입'),
             ),
           ],
         ),
